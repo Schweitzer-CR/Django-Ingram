@@ -1,13 +1,62 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, reverse
 from django.contrib.auth.decorators import login_required
 from .models import InventoryItem, InventoryLog
 from .forms import InventoryForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+import barcode
+from barcode.writer import ImageWriter
+from io import BytesIO
+import base64
+from .models import Phone
 
+
+# Vista principal que muestra la plantilla base
+@login_required
+def home_view(request):
+    context = {
+        'page_title': 'Inicio',
+        'current_page': 'home'
+    }
+    return render(request, 'inventory/base.html', context)
+
+@login_required
+def generate_label(request):
+    context = {}
+    if request.method == 'POST':
+        imei = request.POST.get('imei', '').strip()
+        level = request.POST.get('level', '').strip()
+
+        try:
+            phone = Phone.objects.get(imei=imei)
+            
+            # Generar código de barras
+            ean = barcode.get('code128', phone.imei, writer=ImageWriter())
+            buffer = BytesIO()
+            ean.write(buffer)
+            barcode_b64 = base64.b64encode(buffer.getvalue()).decode()
+
+            context = {
+                'imei': phone.imei,
+                'model': phone.modelo,
+                'grade': phone.disposition,
+                'sku': phone.sku,
+                'barcode_b64': barcode_b64,
+                'level': level,
+                'redirect_url': reverse('generate_label')  # URL para redirección
+            }
+
+            return render(request, 'inventory/label_preview.html', context)
+            
+        except Phone.DoesNotExist:
+            context['error'] = f'No se encontró un equipo con IMEI: {imei}'
+            return render(request, 'inventory/generate_label.html', context)
+    
+    return render(request, 'inventory/generate_label.html', context)
 
 @login_required
 def inventory_log(request):
+    print("hola")
     logs = InventoryLog.objects.select_related('user', 'item').order_by('-timestamp')
     return render(request, 'inventory/log.html', {'logs': logs})
 

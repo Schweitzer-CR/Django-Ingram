@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Etiqueta</title>
+  <style>
+    body {
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+    
+    .label {
+      font-family: Arial, sans-serif;
+      width: auto;
+      max-width: 80mm;
+      padding: 20px;
+      border: 2px solid #000;
+      margin: 20px auto;
+      background: white;
+      text-align: center;
+    }
+    
+    .barcode {
+      margin: 10px 0;
+      text-align: center;
+    }
+    
+    .barcode img {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+    }
+    
+    .print-actions {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .print-btn {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .back-btn {
+      background-color: #95a5a6;
+      margin-left: 10px;
+    }
+    
+    @media print {
+      body {
+        background-color: white;
+      }
+      .print-actions {
+        display: none;
+      }
+      .label {
+        border: none;
+        padding: 0;
+        margin: 0;
+      }
+    }
+  </style>
+  <script>
+    // Función para imprimir y redirigir
+    function printAndRedirect() {
+      window.print();
+      setTimeout(function() {
+        window.location.href = "{% if redirect_url %}{{ redirect_url }}{% else %}{% url 'generate_label' %}{% endif %}";
+      }, 1000);
+    }
+    
+    // Imprimir automáticamente al cargar si es necesario
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('auto_print') === 'true') {
+        printAndRedirect();
+      }
+    };
+  </script>
+</head>
+<body>
+  <div class="label">
+    <strong>{{ model }}</strong><br>
+    <span>IMEI: {{ imei }}</span><br>
+    <div class="barcode">
+      <img src="data:image/png;base64,{{ barcode_b64 }}" alt="Código de barras">
+    </div>
+    <div>
+      <span><strong>{{ level }}</strong></span><br>
+      <span><strong>{{ grade }}</strong></span><br>
+      <span><strong>SKU:</strong> {{ sku }}</span>
+    </div>
+  </div>
+  
+  <div class="print-actions">
+    <button class="print-btn" onclick="printAndRedirect()">Imprimir y Volver</button>
+    <button class="print-btn back-btn" onclick="window.location.href='{% if redirect_url %}{{ redirect_url }}{% else %}{% url 'generate_label' %}{% endif %}'">Volver sin Imprimir</button>
+  </div>
+</body>
+</html>
